@@ -1,1 +1,41 @@
 
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main   # change to dev later if needed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+      - name: Deploy to Server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd ~/healthcheck
+
+            echo "Pull latest code..."
+            git pull origin main
+
+            echo "Stop old container..."
+            docker stop healthcheck-container || true
+            docker rm healthcheck-container || true
+
+            echo "Build new image..."
+            docker build -t healthcheck-app .
+
+            echo "Run new container..."
+            docker run -d -p 8080:8080 --name healthcheck-container healthcheck-app
+
+            echo "Deployment done 🚀"
+          EOF
