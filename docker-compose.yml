@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: amir
+      POSTGRES_PASSWORD: amir123
+      POSTGRES_DB: usersdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: healthcheck_app
+    depends_on:
+      - postgres
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/usersdb
+      DB_USER: amir
+      DB_PASS: amir123
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:

@@ -1,36 +1,81 @@
-name: Deploy to Server
+name: CI – Build & Test
 
 on:
   push:
-    branches:
-      - dev
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
 
 jobs:
-  deploy:
+  build-and-test:
     runs-on: ubuntu-latest
 
+    # ── Postgres runs as a sidecar on the same GitHub runner ─────────────────
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB:       usersdb
+          POSTGRES_USER:     postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d usersdb"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # ── Env vars injected into every step ────────────────────────────────────
+    env:
+      DB_URL:  jdbc:postgresql://localhost:5432/usersdb
+      DB_USER: postgres
+      DB_PASS: postgres
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.5.3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+          java-version: "17"
+          distribution: "temurin"
+          cache: maven
 
-      - name: Deploy to Server
+      - name: Build fat-jar
+        run: mvn clean package -q
+
+      - name: Start app & run CRUD smoke-tests
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-          
-            cd ~/healthcheck
+          java -jar target/healthCheck-1.0-SNAPSHOT.jar &
+          APP_PID=$!
 
-            git pull origin dev
+          echo "Waiting for app to be ready..."
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:8080/healthcheck && break
+            sleep 2
+          done
 
-            docker stop healthcheck-container || true
-            docker rm healthcheck-container || true
+          echo "=== CREATE ==="
+          RESPONSE=$(curl -sf -X POST http://localhost:8080/users \
+            -H "Content-Type: application/json" \
+            -d '{"first_name":"Amir","last_name":"Test","age":28}')
+          echo $RESPONSE
+          ID=$(echo $RESPONSE | grep -o '"id":[0-9]*' | grep -o '[0-9]*')
 
-            docker build -t healthcheck-app .
+          echo "=== GET ALL ==="
+          curl -sf http://localhost:8080/users
 
-            docker run -d -p 8080:8080 --name healthcheck-container healthcheck-app
+          echo "=== GET ONE ==="
+          curl -sf http://localhost:8080/users/$ID
 
-          EOF
+          echo "=== UPDATE ==="
+          curl -sf -X PUT http://localhost:8080/users/$ID \
+            -H "Content-Type: application/json" \
+            -d '{"first_name":"Amir","last_name":"Updated","age":29}'
+
+          echo "=== DELETE ==="
+          curl -sf -X DELETE http://localhost:8080/users/$ID
+
+          kill $APP_PID
