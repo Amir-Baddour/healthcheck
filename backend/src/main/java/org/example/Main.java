@@ -11,10 +11,26 @@ public class Main {
     private static final Gson gson = new Gson();
 
     private static Connection getConnection() throws SQLException {
-        String url  = System.getenv().getOrDefault("DB_URL",  "jdbc:postgresql://postgres_db:5432/healthcheck");
-        String user = System.getenv().getOrDefault("DB_USER", "postgres");
-        String pass = System.getenv().getOrDefault("DB_PASS", "postgres123");
-        return DriverManager.getConnection(url, user, pass);
+        String url  = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://postgres:5432/healthcheck");
+        String user = System.getenv().getOrDefault("DB_USER", "amir");
+        String pass = System.getenv().getOrDefault("DB_PASS", "amir123");
+
+        int retries = 10;
+
+        while (retries > 0) {
+            try {
+                System.out.println("Trying to connect to DB...");
+                return DriverManager.getConnection(url, user, pass);
+            } catch (SQLException e) {
+                retries--;
+                System.out.println("DB not ready yet... retrying in 3 seconds");
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException ignored) {}
+            }
+        }
+
+        throw new SQLException("Database not reachable after retries");
     }
 
     private static void initDb() {
