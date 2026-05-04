@@ -1,0 +1,39 @@
+healthcheck project — interactive file tree with code viewer
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>User Manager</title>
+    <style> /* dark theme, table, toast, inline-edit styles */ </style>
+</head>
+<body>
+<h1>User Manager</h1>
+
+<!-- Add user form -->
+<div class="card">
+    <input id="c_first" placeholder="First name" />
+    <input id="c_last"  placeholder="Last name"  />
+    <input id="c_age"   type="number"         />
+    <button onclick="createUser()">Add</button>
+</div>
+
+<!-- Users table -->
+<table>
+    <thead><tr>
+        <th>#</th><th>First</th><th>Last</th><th>Age</th><th>Actions</th>
+    </tr></thead>
+    <tbody id="userTable"></tbody>
+</table>
+
+<script>
+    const API = '/api/users';  // nginx strips /api prefix
+
+    async function loadUsers() { /* GET /api/users → render rows */ }
+    async function createUser() { /* POST /api/users */ }
+    async function deleteUser(id) { /* DELETE /api/users/:id */ }
+    function       startEdit(id, ...) { /* replace row with inputs */ }
+    async function saveEdit(id) { /* PUT /api/users/:id */ }
+
+    loadUsers();
+</script>
+</body></html>
