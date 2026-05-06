@@ -215,14 +215,97 @@ healthcheck project — interactive file tree with code viewer
 </table>
 
 <script>
-    const API = '/api/users';  // nginx strips /api prefix
+    const API = '/api/users';
 
-    async function loadUsers() { /* GET /api/users → render rows */ }
-    async function createUser() { /* POST /api/users */ }
-    async function deleteUser(id) { /* DELETE /api/users/:id */ }
-    function       startEdit(id, ...) { /* replace row with inputs */ }
-    async function saveEdit(id) { /* PUT /api/users/:id */ }
+    async function loadUsers() {
+        const res = await fetch(API);
+        const users = await res.json();
+
+        const table = document.getElementById("userTable");
+        table.innerHTML = "";
+
+        users.forEach(u => {
+            table.innerHTML += `
+                <tr>
+                    <td>${u.id}</td>
+                    <td>${u.first_name}</td>
+                    <td>${u.last_name}</td>
+                    <td>${u.age}</td>
+                    <td>
+                        <button onclick="startEdit(${u.id}, '${u.first_name}', '${u.last_name}', ${u.age})">
+                            Edit
+                        </button>
+
+                        <button onclick="deleteUser(${u.id})">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    async function createUser() {
+        const first = document.getElementById("c_first").value;
+        const last  = document.getElementById("c_last").value;
+        const age   = document.getElementById("c_age").value;
+
+        await fetch(API, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                first_name: first,
+                last_name: last,
+                age: parseInt(age)
+            })
+        });
+
+        document.getElementById("c_first").value = "";
+        document.getElementById("c_last").value = "";
+        document.getElementById("c_age").value = "";
+
+        loadUsers();
+    }
+
+    async function deleteUser(id) {
+        await fetch(`${API}/${id}`, {
+            method: "DELETE"
+        });
+
+        loadUsers();
+    }
+
+    function startEdit(id, first, last, age) {
+        const newFirst = prompt("First name", first);
+        const newLast  = prompt("Last name", last);
+        const newAge   = prompt("Age", age);
+
+        if (newFirst == null || newLast == null || newAge == null) {
+            return;
+        }
+
+        saveEdit(id, newFirst, newLast, newAge);
+    }
+
+    async function saveEdit(id, first, last, age) {
+        await fetch(`${API}/${id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                first_name: first,
+                last_name: last,
+                age: parseInt(age)
+            })
+        });
+
+        loadUsers();
+    }
 
     loadUsers();
 </script>
-</body></html>
+</body>
+</html>
