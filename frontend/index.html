@@ -226,35 +226,28 @@ healthcheck project — interactive file tree with code viewer
 
         users.forEach(u => {
             table.innerHTML += `
-                <tr>
-                    <td>${u.id}</td>
-                    <td>${u.first_name}</td>
-                    <td>${u.last_name}</td>
-                    <td>${u.age}</td>
-                    <td>
-                        <button onclick="startEdit(${u.id}, '${u.first_name}', '${u.last_name}', ${u.age})">
-                            Edit
-                        </button>
-
-                        <button onclick="deleteUser(${u.id})">
-                            Delete
-                        </button>
-                    </td>
-                </tr>
-            `;
+            <tr>
+                <td>${u.id}</td>
+                <td>${u.first_name}</td>
+                <td>${u.last_name}</td>
+                <td>${u.age}</td>
+                <td>
+                    <button onclick="startEdit(${u.id}, '${u.first_name}', '${u.last_name}', ${u.age})">Edit</button>
+                    <button onclick="deleteUser(${u.id})">Delete</button>
+                </td>
+            </tr>
+        `;
         });
     }
 
     async function createUser() {
         const first = document.getElementById("c_first").value;
-        const last  = document.getElementById("c_last").value;
-        const age   = document.getElementById("c_age").value;
+        const last = document.getElementById("c_last").value;
+        const age = document.getElementById("c_age").value;
 
         await fetch(API, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 first_name: first,
                 last_name: last,
@@ -262,29 +255,20 @@ healthcheck project — interactive file tree with code viewer
             })
         });
 
-        document.getElementById("c_first").value = "";
-        document.getElementById("c_last").value = "";
-        document.getElementById("c_age").value = "";
-
         loadUsers();
     }
 
     async function deleteUser(id) {
-        await fetch(`${API}/${id}`, {
-            method: "DELETE"
-        });
-
+        await fetch(`${API}/${id}`, { method: "DELETE" });
         loadUsers();
     }
 
     function startEdit(id, first, last, age) {
         const newFirst = prompt("First name", first);
-        const newLast  = prompt("Last name", last);
-        const newAge   = prompt("Age", age);
+        const newLast = prompt("Last name", last);
+        const newAge = prompt("Age", age);
 
-        if (newFirst == null || newLast == null || newAge == null) {
-            return;
-        }
+        if (newFirst === null || newLast === null || newAge === null) return;
 
         saveEdit(id, newFirst, newLast, newAge);
     }
@@ -292,9 +276,7 @@ healthcheck project — interactive file tree with code viewer
     async function saveEdit(id, first, last, age) {
         await fetch(`${API}/${id}`, {
             method: "PUT",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 first_name: first,
                 last_name: last,
