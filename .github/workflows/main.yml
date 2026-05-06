@@ -68,7 +68,7 @@ jobs:
             docker stop healthcheck-container || true
             docker rm healthcheck-container || true
 
-            docker run -d --name healthcheck-container --network healthnet -p 80:8080 \
+            docker run -d --name healthcheck-container --network healthnet -p 8080:8080 \
               -e DB_URL=jdbc:postgresql://postgres_db:5432/${{ secrets.DB_NAME }} \
               -e DB_USER=${{ secrets.DB_USER }} \
               -e DB_PASS=${{ secrets.DB_PASS }} \
