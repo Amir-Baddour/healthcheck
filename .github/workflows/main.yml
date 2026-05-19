@@ -55,31 +55,41 @@ jobs:
             cd ~/healthcheck
             git pull origin dev
 
-            docker network create healthnet || true
-
-            docker stop postgres_db || true
-            docker rm postgres_db || true
-
-            docker run -d --name postgres_db --network healthnet \
+              docker network create healthnet || true
+            
+              docker stop postgres_db || true
+              docker rm postgres_db || true
+            
+              docker run -d --name postgres_db --network healthnet \
               -e POSTGRES_USER=${{ secrets.DB_USER }} \
               -e POSTGRES_PASSWORD=${{ secrets.DB_PASS }} \
               -e POSTGRES_DB=${{ secrets.DB_NAME }} \
               postgres:15
-
-            docker pull amirbaddour/healthcheck
-
-            docker stop healthcheck-container || true
-            docker rm healthcheck-container || true
-
-            docker run -d --name healthcheck-container --network healthnet -p 8080:8080 \
+            
+              docker pull amirbaddour/healthcheck
+            
+              docker stop healthcheck-container || true
+              docker rm healthcheck-container || true
+            
+              docker run -d --name healthcheck-container --network healthnet \
               -e DB_URL=jdbc:postgresql://postgres_db:5432/${{ secrets.DB_NAME }} \
               -e DB_USER=${{ secrets.DB_USER }} \
               -e DB_PASS=${{ secrets.DB_PASS }} \
               amirbaddour/healthcheck
-
-            docker stop frontend-container || true
-            docker rm frontend-container || true
-
-            cd ~/healthcheck/frontend
-            docker build -t frontend-app .
-            docker run -d --name frontend-container -p 3000:80 frontend-app
+            
+              docker stop frontend-container || true
+              docker rm frontend-container || true
+            
+              cd ~/healthcheck/frontend
+              docker build -t frontend-app .
+              docker run -d --name frontend-container --network healthnet frontend-app
+            
+              cd ~/healthcheck
+            
+              docker stop nginx_proxy || true
+              docker rm nginx_proxy || true
+            
+              docker run -d --name nginx_proxy --network healthnet \
+              -p 80:80 \
+              -v ~/healthcheck/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+              nginx:alpine
