@@ -7,11 +7,12 @@ import java.util.*;
 import java.util.logging.Logger;
 
 public class Main {
+
     private static final Logger logger = Logger.getLogger(Main.class.getName());
     private static final Gson gson = new Gson();
 
     private static Connection getConnection() throws SQLException {
-        String url  = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://postgres:5432/healthcheck");
+        String url = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://postgres:5432/healthcheck");
         String user = System.getenv().getOrDefault("DB_USER", "amir");
         String pass = System.getenv().getOrDefault("DB_PASS", "amir123");
 
@@ -19,23 +20,29 @@ public class Main {
 
         while (retries > 0) {
             try {
-                logger.info("Trying to connect to DB...");
-                return DriverManager.getConnection(url, user, pass);
+                logger.info("Trying to connect to database...");
+                Connection connection = DriverManager.getConnection(url, user, pass);
+                logger.info("Database connected successfully");
+                return connection;
             } catch (SQLException e) {
                 retries--;
-                logger.warning("DB not ready yet... retrying in 3 seconds");
+                logger.warning("Database not ready. Retries left: " + retries);
 
                 try {
                     Thread.sleep(3000);
-                } catch (InterruptedException ignored) {
+                } catch (InterruptedException ex) {
+                    logger.warning("Database retry sleep interrupted");
                 }
             }
         }
 
+        logger.severe("Database not reachable after all retries");
         throw new SQLException("Database not reachable after retries");
     }
 
     private static void initDb() {
+        logger.info("Initializing database...");
+
         String sql = """
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -47,26 +54,31 @@ public class Main {
 
         try (Connection c = getConnection(); Statement st = c.createStatement()) {
             st.execute(sql);
-            logger.info("DB initialised - users table ready");
+            logger.info("Users table is ready");
         } catch (SQLException e) {
-            logger.severe("DB init failed: " + e.getMessage());
+            logger.severe("Database initialization failed: " + e.getMessage());
             throw new RuntimeException(e);
         }
     }
 
     public static void main(String[] args) {
+        logger.info("Starting server...");
+
         port(8080);
 
         initDb();
 
-        // Health check
+        logger.info("Server running on port 8080");
+
         get("/healthcheck", (req, res) -> {
-            logger.info("hello from server");
+            logger.info("GET /healthcheck called");
+
             return "AMIR'S SERVER IS LIVE - version 3 (CRUD enabled)";
         });
 
-        // GET ALL USERS
         get("/users", (req, res) -> {
+            logger.info("GET /users called");
+
             res.type("application/json");
 
             List<Map<String, Object>> users = new ArrayList<>();
@@ -85,16 +97,25 @@ public class Main {
 
                     users.add(row);
                 }
+
+                logger.info("Fetched users count: " + users.size());
+
+            } catch (SQLException e) {
+                logger.severe("Error fetching users: " + e.getMessage());
+
+                res.status(500);
+                return gson.toJson(Map.of("error", "Database error"));
             }
 
             return gson.toJson(users);
         });
 
-        // GET ONE USER
         get("/users/:id", (req, res) -> {
             res.type("application/json");
 
             int id = Integer.parseInt(req.params("id"));
+
+            logger.info("GET /users/" + id + " called");
 
             try (Connection c = getConnection();
                  PreparedStatement ps = c.prepareStatement("SELECT * FROM users WHERE id = ?")) {
@@ -104,6 +125,8 @@ public class Main {
                 ResultSet rs = ps.executeQuery();
 
                 if (rs.next()) {
+                    logger.info("User found with id: " + id);
+
                     Map<String, Object> row = new LinkedHashMap<>();
 
                     row.put("id", rs.getInt("id"));
@@ -114,82 +137,115 @@ public class Main {
                     return gson.toJson(row);
                 }
 
+                logger.warning("User not found with id: " + id);
+
                 res.status(404);
                 return gson.toJson(Map.of("error", "User not found"));
+
+            } catch (SQLException e) {
+                logger.severe("Error fetching user with id " + id + ": " + e.getMessage());
+
+                res.status(500);
+                return gson.toJson(Map.of("error", "Database error"));
             }
         });
 
-        // CREATE USER
         post("/users", (req, res) -> {
+            logger.info("POST /users called");
+
             res.type("application/json");
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> body = gson.fromJson(req.body(), Map.class);
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> body = gson.fromJson(req.body(), Map.class);
 
-            String firstName = (String) body.get("first_name");
-            String lastName = (String) body.get("last_name");
-            int age = ((Number) body.get("age")).intValue();
+                String firstName = (String) body.get("first_name");
+                String lastName = (String) body.get("last_name");
+                int age = ((Number) body.get("age")).intValue();
 
-            String sql = "INSERT INTO users (first_name, last_name, age) VALUES (?, ?, ?) RETURNING id";
+                String sql = "INSERT INTO users (first_name, last_name, age) VALUES (?, ?, ?) RETURNING id";
 
-            try (Connection c = getConnection();
-                 PreparedStatement ps = c.prepareStatement(sql)) {
+                try (Connection c = getConnection();
+                     PreparedStatement ps = c.prepareStatement(sql)) {
 
-                ps.setString(1, firstName);
-                ps.setString(2, lastName);
-                ps.setInt(3, age);
+                    ps.setString(1, firstName);
+                    ps.setString(2, lastName);
+                    ps.setInt(3, age);
 
-                ResultSet rs = ps.executeQuery();
-                rs.next();
+                    ResultSet rs = ps.executeQuery();
+                    rs.next();
 
-                int newId = rs.getInt("id");
+                    int newId = rs.getInt("id");
 
-                res.status(201);
+                    logger.info("User created with id: " + newId);
 
-                return gson.toJson(Map.of(
-                        "id", newId,
-                        "first_name", firstName,
-                        "last_name", lastName,
-                        "age", age
-                ));
+                    res.status(201);
+
+                    return gson.toJson(Map.of(
+                            "id", newId,
+                            "first_name", firstName,
+                            "last_name", lastName,
+                            "age", age
+                    ));
+                }
+
+            } catch (Exception e) {
+                logger.severe("Error creating user: " + e.getMessage());
+
+                res.status(500);
+                return gson.toJson(Map.of("error", "Could not create user"));
             }
         });
 
-        // UPDATE USER
         put("/users/:id", (req, res) -> {
             res.type("application/json");
 
             int id = Integer.parseInt(req.params("id"));
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> body = gson.fromJson(req.body(), Map.class);
+            logger.info("PUT /users/" + id + " called");
 
-            String sql = "UPDATE users SET first_name = ?, last_name = ?, age = ? WHERE id = ?";
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> body = gson.fromJson(req.body(), Map.class);
 
-            try (Connection c = getConnection();
-                 PreparedStatement ps = c.prepareStatement(sql)) {
+                String sql = "UPDATE users SET first_name = ?, last_name = ?, age = ? WHERE id = ?";
 
-                ps.setString(1, (String) body.get("first_name"));
-                ps.setString(2, (String) body.get("last_name"));
-                ps.setInt(3, ((Number) body.get("age")).intValue());
-                ps.setInt(4, id);
+                try (Connection c = getConnection();
+                     PreparedStatement ps = c.prepareStatement(sql)) {
 
-                int rows = ps.executeUpdate();
+                    ps.setString(1, (String) body.get("first_name"));
+                    ps.setString(2, (String) body.get("last_name"));
+                    ps.setInt(3, ((Number) body.get("age")).intValue());
+                    ps.setInt(4, id);
 
-                if (rows == 0) {
-                    res.status(404);
-                    return gson.toJson(Map.of("error", "User not found"));
+                    int rows = ps.executeUpdate();
+
+                    if (rows == 0) {
+                        logger.warning("Update failed. User not found with id: " + id);
+
+                        res.status(404);
+                        return gson.toJson(Map.of("error", "User not found"));
+                    }
+
+                    logger.info("User updated with id: " + id);
+
+                    return gson.toJson(Map.of("message", "User updated"));
                 }
 
-                return gson.toJson(Map.of("message", "User updated"));
+            } catch (Exception e) {
+                logger.severe("Error updating user with id " + id + ": " + e.getMessage());
+
+                res.status(500);
+                return gson.toJson(Map.of("error", "Could not update user"));
             }
         });
 
-        // DELETE USER
         delete("/users/:id", (req, res) -> {
             res.type("application/json");
 
             int id = Integer.parseInt(req.params("id"));
+
+            logger.info("DELETE /users/" + id + " called");
 
             try (Connection c = getConnection();
                  PreparedStatement ps = c.prepareStatement("DELETE FROM users WHERE id = ?")) {
@@ -199,11 +255,21 @@ public class Main {
                 int rows = ps.executeUpdate();
 
                 if (rows == 0) {
+                    logger.warning("Delete failed. User not found with id: " + id);
+
                     res.status(404);
                     return gson.toJson(Map.of("error", "User not found"));
                 }
 
+                logger.info("User deleted with id: " + id);
+
                 return gson.toJson(Map.of("message", "User deleted"));
+
+            } catch (SQLException e) {
+                logger.severe("Error deleting user with id " + id + ": " + e.getMessage());
+
+                res.status(500);
+                return gson.toJson(Map.of("error", "Could not delete user"));
             }
         });
     }
