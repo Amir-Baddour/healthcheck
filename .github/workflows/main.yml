@@ -7,6 +7,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:15
@@ -34,10 +35,10 @@ jobs:
       - name: Login to Docker Hub
         run: echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
 
-      - name: Build image
+      - name: Build backend image
         run: docker build -t amirbaddour/healthcheck ./backend
 
-      - name: Push image
+      - name: Push backend image
         run: docker push amirbaddour/healthcheck
 
   deploy:
@@ -55,41 +56,45 @@ jobs:
             cd ~/healthcheck
             git pull origin dev
 
-              docker network create healthnet || true
-            
-              docker stop postgres_db || true
-              docker rm postgres_db || true
-            
-              docker run -d --name postgres_db --network healthnet \
+            sudo systemctl stop nginx || true
+            sudo systemctl disable nginx || true
+
+            docker network create healthnet || true
+
+            docker rm -f nginx_proxy || true
+            docker rm -f frontend-container || true
+            docker rm -f healthcheck-container || true
+            docker rm -f postgres_db || true
+
+            docker run -d --name postgres_db --network healthnet \
+              --restart unless-stopped \
               -e POSTGRES_USER=${{ secrets.DB_USER }} \
               -e POSTGRES_PASSWORD=${{ secrets.DB_PASS }} \
               -e POSTGRES_DB=${{ secrets.DB_NAME }} \
               postgres:15
-            
-              docker pull amirbaddour/healthcheck
-            
-              docker stop healthcheck-container || true
-              docker rm healthcheck-container || true
-            
-              docker run -d --name healthcheck-container --network healthnet \
+
+            docker pull amirbaddour/healthcheck
+
+            docker run -d --name healthcheck-container --network healthnet \
+              --restart unless-stopped \
               -e DB_URL=jdbc:postgresql://postgres_db:5432/${{ secrets.DB_NAME }} \
               -e DB_USER=${{ secrets.DB_USER }} \
               -e DB_PASS=${{ secrets.DB_PASS }} \
               amirbaddour/healthcheck
-            
-              docker stop frontend-container || true
-              docker rm frontend-container || true
-            
-              cd ~/healthcheck/frontend
-              docker build -t frontend-app .
-              docker run -d --name frontend-container --network healthnet frontend-app
-            
-              cd ~/healthcheck
-            
-              docker stop nginx_proxy || true
-              docker rm nginx_proxy || true
-            
-              docker run -d --name nginx_proxy --network healthnet \
+
+            cd ~/healthcheck/frontend
+            docker build -t frontend-app .
+
+            docker run -d --name frontend-container --network healthnet \
+              --restart unless-stopped \
+              frontend-app
+
+            cd ~/healthcheck
+
+            docker run -d --name nginx_proxy --network healthnet \
+              --restart unless-stopped \
               -p 80:80 \
               -v ~/healthcheck/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
               nginx:alpine
+
+            docker ps
