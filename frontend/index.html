@@ -1,243 +1,280 @@
-healthcheck project — interactive file tree with code viewer
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>User Manager</title>
-    <style> /* static/styles.css */
-    /* Professional dark theme for index.html - User Manager */
 
-    * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-    }
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-    body {
-        min-height: 100vh;
-        font-family: Arial, Helvetica, sans-serif;
-        background: linear-gradient(135deg, #111827, #1f2937, #0f172a);
-        color: #f9fafb;
-        padding: 40px 20px;
-    }
-
-    h1 {
-        text-align: center;
-        margin-bottom: 30px;
-        font-size: 38px;
-        letter-spacing: 1px;
-        color: #ffffff;
-    }
-
-    .card {
-        max-width: 900px;
-        margin: 0 auto 30px auto;
-        padding: 24px;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 18px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 14px;
-        backdrop-filter: blur(12px);
-    }
-
-    input {
-        width: 100%;
-        padding: 13px 15px;
-        border: 1px solid #374151;
-        border-radius: 12px;
-        outline: none;
-        background: #111827;
-        color: #f9fafb;
-        font-size: 15px;
-        transition: 0.25s ease;
-    }
-
-    input::placeholder {
-        color: #9ca3af;
-    }
-
-    input:focus {
-        border-color: #38bdf8;
-        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
-    }
-
-    button {
-        border: none;
-        border-radius: 12px;
-        padding: 12px 16px;
-        cursor: pointer;
-        background: linear-gradient(135deg, #2563eb, #06b6d4);
-        color: #ffffff;
-        font-weight: bold;
-        font-size: 15px;
-        transition: 0.25s ease;
-    }
-
-    button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(6, 182, 212, 0.35);
-    }
-
-    button:active {
-        transform: scale(0.98);
-    }
-
-    table {
-        width: 100%;
-        max-width: 1000px;
-        margin: 0 auto;
-        border-collapse: collapse;
-        overflow: hidden;
-        border-radius: 18px;
-        background: rgba(17, 24, 39, 0.95);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
-    }
-
-    thead {
-        background: linear-gradient(135deg, #2563eb, #0891b2);
-    }
-
-    th,
-    td {
-        padding: 16px;
-        text-align: left;
-        border-bottom: 1px solid #374151;
-    }
-
-    th {
-        color: #ffffff;
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-    }
-
-    td {
-        color: #e5e7eb;
-        font-size: 15px;
-    }
-
-    tbody tr {
-        transition: 0.25s ease;
-    }
-
-    tbody tr:hover {
-        background: rgba(56, 189, 248, 0.08);
-    }
-
-    tbody tr:last-child td {
-        border-bottom: none;
-    }
-
-    td button {
-        margin-right: 8px;
-        padding: 9px 12px;
-        font-size: 13px;
-    }
-
-    td button:nth-child(1) {
-        background: linear-gradient(135deg, #22c55e, #16a34a);
-    }
-
-    td button:nth-child(2) {
-        background: linear-gradient(135deg, #ef4444, #dc2626);
-    }
-
-    /* Edit row inputs inside the table */
-    td input {
-        padding: 10px 12px;
-        font-size: 14px;
-    }
-
-    /* Optional toast/message style if your JavaScript creates one */
-    .toast,
-    .message,
-    .alert {
-        position: fixed;
-        right: 24px;
-        bottom: 24px;
-        padding: 14px 18px;
-        border-radius: 14px;
-        background: #0f172a;
-        color: #ffffff;
-        border: 1px solid #38bdf8;
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
-        z-index: 999;
-    }
-
-    /* Responsive design */
-    @media (max-width: 768px) {
         body {
-            padding: 25px 12px;
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #111827, #1f2937, #0f172a);
+            color: #f9fafb;
+            padding: 40px 20px;
         }
 
         h1 {
-            font-size: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 38px;
+            letter-spacing: 1px;
+            color: #ffffff;
         }
 
         .card {
-            grid-template-columns: 1fr;
-            padding: 18px;
+            max-width: 900px;
+            margin: 0 auto 30px auto;
+            padding: 24px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 18px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            backdrop-filter: blur(12px);
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 13px;
+            color: #d1d5db;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px 15px;
+            border: 1px solid #374151;
+            border-radius: 12px;
+            outline: none;
+            background: #111827;
+            color: #f9fafb;
+            font-size: 15px;
+            transition: 0.25s ease;
+        }
+
+        input::placeholder {
+            color: #9ca3af;
+        }
+
+        input:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+        }
+
+        button {
+            border: none;
+            border-radius: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #2563eb, #06b6d4);
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 15px;
+            transition: 0.25s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(6, 182, 212, 0.35);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .add-button {
+            align-self: end;
         }
 
         table {
-            display: block;
-            overflow-x: auto;
-            white-space: nowrap;
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            border-collapse: collapse;
+            overflow: hidden;
+            border-radius: 18px;
+            background: rgba(17, 24, 39, 0.95);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+        }
+
+        thead {
+            background: linear-gradient(135deg, #2563eb, #0891b2);
         }
 
         th,
         td {
-            padding: 13px;
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid #374151;
         }
-    }
+
+        th {
+            color: #ffffff;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        td {
+            color: #e5e7eb;
+            font-size: 15px;
+        }
+
+        tbody tr {
+            transition: 0.25s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(56, 189, 248, 0.08);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        td button {
+            margin-right: 8px;
+            padding: 9px 12px;
+            font-size: 13px;
+        }
+
+        td button:nth-child(1) {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+        }
+
+        td button:nth-child(2) {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .message {
+            max-width: 900px;
+            margin: 0 auto 20px auto;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid #38bdf8;
+            color: #ffffff;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 25px 12px;
+            }
+
+            h1 {
+                font-size: 30px;
+            }
+
+            .card {
+                grid-template-columns: 1fr;
+                padding: 18px;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            th,
+            td {
+                padding: 13px;
+            }
+        }
     </style>
 </head>
+
 <body>
 <h1>User Manager</h1>
 
-<!-- Add user form -->
+<div id="message" class="message"></div>
+
 <div class="card">
-    <input id="c_first" placeholder="First name" />
-    <input id="c_last"  placeholder="Last name"  />
-    <input id="c_age"   type="number"   placeholder="age"     />
-    <button onclick="createUser()">Add</button>
+    <div class="field">
+        <label for="c_first">First name</label>
+        <input id="c_first" type="text" placeholder="First name" />
+    </div>
+
+    <div class="field">
+        <label for="c_last">Last name</label>
+        <input id="c_last" type="text" placeholder="Last name" />
+    </div>
+
+    <div class="field">
+        <label for="c_age">Age</label>
+        <input id="c_age" type="number" placeholder="Age" />
+    </div>
+
+    <button class="add-button" onclick="createUser()">Add</button>
 </div>
 
-<!-- Users table -->
 <table>
-    <thead><tr>
-        <th>#</th><th>First</th><th>Last</th><th>Age</th><th>Actions</th>
-    </tr></thead>
+    <thead>
+    <tr>
+        <th>#</th>
+        <th>First</th>
+        <th>Last</th>
+        <th>Age</th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+
     <tbody id="userTable"></tbody>
 </table>
 
 <script>
-    const API = '/api/users';
+    const API = "/api/users";
+
+    function showMessage(text) {
+        const message = document.getElementById("message");
+        message.innerText = text;
+        message.style.display = "block";
+
+        setTimeout(() => {
+            message.style.display = "none";
+        }, 3000);
+    }
 
     async function loadUsers() {
-        const res = await fetch(API);
-        const users = await res.json();
+        try {
+            const res = await fetch(API);
+            const users = await res.json();
 
-        const table = document.getElementById("userTable");
-        table.innerHTML = "";
+            const table = document.getElementById("userTable");
+            table.innerHTML = "";
 
-        users.forEach(u => {
-            table.innerHTML += `
-            <tr>
-                <td>${u.id}</td>
-                <td>${u.first_name}</td>
-                <td>${u.last_name}</td>
-                <td>${u.age}</td>
-                <td>
-                    <button onclick="startEdit(${u.id}, '${u.first_name}', '${u.last_name}', ${u.age})">Edit</button>
-                    <button onclick="deleteUser(${u.id})">Delete</button>
-                </td>
-            </tr>
-        `;
-        });
+            users.forEach(user => {
+                table.innerHTML += `
+                        <tr>
+                            <td>${user.id}</td>
+                            <td>${user.first_name}</td>
+                            <td>${user.last_name}</td>
+                            <td>${user.age}</td>
+                            <td>
+                                <button onclick="startEdit(${user.id}, '${user.first_name}', '${user.last_name}', ${user.age})">Edit</button>
+                                <button onclick="deleteUser(${user.id})">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+            });
+        } catch (error) {
+            showMessage("Error loading users");
+            console.error(error);
+        }
     }
 
     async function createUser() {
@@ -245,22 +282,48 @@ healthcheck project — interactive file tree with code viewer
         const last = document.getElementById("c_last").value;
         const age = document.getElementById("c_age").value;
 
-        await fetch(API, {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({
-                first_name: first,
-                last_name: last,
-                age: parseInt(age)
-            })
-        });
+        if (first === "" || last === "" || age === "") {
+            showMessage("Please fill all fields");
+            return;
+        }
 
-        loadUsers();
+        try {
+            await fetch(API, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    first_name: first,
+                    last_name: last,
+                    age: parseInt(age)
+                })
+            });
+
+            document.getElementById("c_first").value = "";
+            document.getElementById("c_last").value = "";
+            document.getElementById("c_age").value = "";
+
+            showMessage("User added successfully");
+            loadUsers();
+        } catch (error) {
+            showMessage("Error adding user");
+            console.error(error);
+        }
     }
 
     async function deleteUser(id) {
-        await fetch(`${API}/${id}`, { method: "DELETE" });
-        loadUsers();
+        try {
+            await fetch(`${API}/${id}`, {
+                method: "DELETE"
+            });
+
+            showMessage("User deleted successfully");
+            loadUsers();
+        } catch (error) {
+            showMessage("Error deleting user");
+            console.error(error);
+        }
     }
 
     function startEdit(id, first, last, age) {
@@ -268,23 +331,33 @@ healthcheck project — interactive file tree with code viewer
         const newLast = prompt("Last name", last);
         const newAge = prompt("Age", age);
 
-        if (newFirst === null || newLast === null || newAge === null) return;
+        if (newFirst === null || newLast === null || newAge === null) {
+            return;
+        }
 
         saveEdit(id, newFirst, newLast, newAge);
     }
 
     async function saveEdit(id, first, last, age) {
-        await fetch(`${API}/${id}`, {
-            method: "PUT",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({
-                first_name: first,
-                last_name: last,
-                age: parseInt(age)
-            })
-        });
+        try {
+            await fetch(`${API}/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    first_name: first,
+                    last_name: last,
+                    age: parseInt(age)
+                })
+            });
 
-        loadUsers();
+            showMessage("User updated successfully");
+            loadUsers();
+        } catch (error) {
+            showMessage("Error updating user");
+            console.error(error);
+        }
     }
 
     loadUsers();
