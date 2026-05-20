@@ -19,9 +19,10 @@ jobs:
           - 5432:5432
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Build with Maven
+      - name: Build backend with Maven
         working-directory: backend
         run: mvn clean package -DskipTests
 
@@ -30,15 +31,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Login to Docker Hub
         run: echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
 
-      - name: Build backend image
+      - name: Build backend Docker image
         run: docker build -t amirbaddour/healthcheck ./backend
 
-      - name: Push backend image
+      - name: Push backend Docker image
         run: docker push amirbaddour/healthcheck
 
   deploy:
@@ -46,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy via SSH
+      - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -56,16 +58,20 @@ jobs:
             cd ~/healthcheck
             git pull origin dev
 
+            # Stop Ubuntu nginx if it exists, because Docker nginx needs ports 80 and 443
             sudo systemctl stop nginx || true
             sudo systemctl disable nginx || true
 
+            # Create Docker network
             docker network create healthnet || true
 
+            # Remove old containers
             docker rm -f nginx_proxy || true
             docker rm -f frontend-container || true
             docker rm -f healthcheck-container || true
             docker rm -f postgres_db || true
 
+            # Start PostgreSQL
             docker run -d --name postgres_db --network healthnet \
               --restart unless-stopped \
               -e POSTGRES_USER=${{ secrets.DB_USER }} \
@@ -73,8 +79,10 @@ jobs:
               -e POSTGRES_DB=${{ secrets.DB_NAME }} \
               postgres:15
 
+            # Pull latest backend image
             docker pull amirbaddour/healthcheck
 
+            # Start backend
             docker run -d --name healthcheck-container --network healthnet \
               --restart unless-stopped \
               -e DB_URL=jdbc:postgresql://postgres_db:5432/${{ secrets.DB_NAME }} \
@@ -82,6 +90,7 @@ jobs:
               -e DB_PASS=${{ secrets.DB_PASS }} \
               amirbaddour/healthcheck
 
+            # Build and start frontend
             cd ~/healthcheck/frontend
             docker build -t frontend-app .
 
@@ -89,12 +98,15 @@ jobs:
               --restart unless-stopped \
               frontend-app
 
+            # Start nginx reverse proxy with HTTP + HTTPS
             cd ~/healthcheck
 
             docker run -d --name nginx_proxy --network healthnet \
               --restart unless-stopped \
               -p 80:80 \
+              -p 443:443 \
               -v ~/healthcheck/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+              -v /etc/letsencrypt:/etc/letsencrypt:ro \
               nginx:alpine
 
             docker ps
